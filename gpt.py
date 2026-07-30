@@ -178,7 +178,14 @@ class GPTLanguageModel(nn.Module):
 
         return logits, loss
 
+    @torch.no_grad()
     def generate(self, idx, max_new_tokens):
+        # record the original training mode
+        was_training = self.training 
+        
+        # switch to evaluation mode. close Dropout
+        self.eval()
+
         # idx is (B, T) array of indices in the current context
         for _ in range(max_new_tokens):
             # crop idx to the last block_size tokens
@@ -193,6 +200,10 @@ class GPTLanguageModel(nn.Module):
             idx_next = torch.multinomial(probs, num_samples=1) # (B, 1)
             # append sampled index to the running sequence
             idx = torch.cat((idx, idx_next), dim=1) # (B, T+1)
+
+        if was_training:
+            self.train()
+            
         return idx
 
 model = GPTLanguageModel()
